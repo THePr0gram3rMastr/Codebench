@@ -4,9 +4,13 @@
 import logging
 import traceback
 import new
+import sys
+import os
 
 from functools import wraps
 from itertools import izip
+
+import numpy
 
 logger = logging.getLogger(__name__)
 
@@ -97,4 +101,37 @@ def addmethod(instance):
         return fct
     return decorator
 
+class scipyfilecached(object):
+    """
+    This is a decorator wich is designed to cache to a file the 
+    result of a function. This function calculate a hash from the
+    function and the parameters and store the result in a designed
+    file. ONLY WORK WITH SCIPY/NUMPY ARRAY AND WITH HASHABLE PARAMETERS
+    """
+    def __init__(self, basepath =  sys.argv[0]):
+        basepath = basepath[1:] if basepath.startswith('/') else basepath
+        basepath = os.path.join("/tmp", basepath)
+        try:
+            os.stat(basepath)
+        except:
+            os.mkdir(basepath)
+        self.basepath = basepath
+        print self.basepath
+
+    def __call__(self, fct):
+        cachebase = os.path.join(self.basepath, str(hash(fct)) + "_" + str(os.getpid()))
+        @wraps(fct)
+        def wrapper(*args, **kwargs):
+            cachefile = cachebase + ''.join([str(i) for i in map(hash, args)])
+            cachefile = cachefile + '_'.join([str(hash(kwargs[i])) for i in kwargs]) + ".npy"
+            try:
+                os.stat(cachefile)
+                logger.info("Parameters hash matched calling -- %s --, reading cached return from file " % \
+                (fct.__name__))
+                return_value = numpy.load(cachefile)
+            except:
+                return_value = fct(*args, **kwargs)
+                numpy.save(cachefile, return_value)
+            return return_value
+        return wrapper
 
