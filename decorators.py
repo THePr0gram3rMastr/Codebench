@@ -6,6 +6,7 @@ import traceback
 import new
 import sys
 import os
+import time
 
 from functools import wraps
 from itertools import izip
@@ -80,7 +81,7 @@ def deprecated(fct):
         return fct(*args, **kwargs)
     return wrapper
 
-def logcall(fct):
+def loggedcall(fct):
     """
     This is a decorator which log function call.
     """
@@ -101,7 +102,7 @@ def addmethod(instance):
         return fct
     return decorator
 
-class scipyfilecached(object):
+class memoizehd(object):
     """
     This is a decorator wich is designed to cache to a file the 
     result of a function. This function calculate a hash from the
@@ -123,7 +124,7 @@ class scipyfilecached(object):
         @wraps(fct)
         def wrapper(*args, **kwargs):
             cachefile = cachebase + ''.join([str(i) for i in map(hash, args)])
-            cachefile = cachefile + '_'.join([str(hash(kwargs[i])) for i in kwargs]) + ".npy"
+            cachefile += '_'.join([str(hash(kwargs[i])) for i in kwargs]) + ".npy"
             try:
                 os.stat(cachefile)
                 logger.info("Parameters hash matched calling -- %s --, reading cached return from file " % \
@@ -135,3 +136,32 @@ class scipyfilecached(object):
             return return_value
         return wrapper
 
+
+class memoize(object):
+    """
+    This is a decorator which cache the result of a function based on the 
+    given parameter.
+    """
+    def __init__(self):
+        self.return_dict = {}
+
+    def __call__(self, fct):
+        @wraps(fct)
+        def wrapper(*args, **kwargs):
+            if args in self.return_dict:
+                return_value = self.return_dict[args]
+            else:
+                return_value = fct(*args, **kwargs)
+            return return_value
+        return wrapper
+        
+
+def timedcall(fct):
+    @wraps(fct)
+    def wrapper(*args, **kwargs):
+        t = time.time()
+        return_value = fct(*args, **kwargs)
+        logger.info("Function -- %s -- called : TIME -- %.4f --" % \
+                    (fct.__name__, time.time() - t))
+        return return_value
+    return wrapper
