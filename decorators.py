@@ -148,10 +148,11 @@ class memoize(object):
     def __call__(self, fct):
         @wraps(fct)
         def wrapper(*args, **kwargs):
-            if args in self.return_dict:
-                return_value = self.return_dict[args]
+            if args.__repr__() in self.return_dict:
+                return_value = self.return_dict[args.__repr__()]
             else:
                 return_value = fct(*args, **kwargs)
+                self.return_dict[args.__repr__()] = return_value
             return return_value
         return wrapper
         
