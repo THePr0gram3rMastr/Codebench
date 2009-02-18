@@ -1,4 +1,4 @@
-import time
+import time 
 import sys
 
 class ProgressBar(object):
@@ -9,9 +9,14 @@ class ProgressBar(object):
         self.size = size
         self.start_time = time.time()
         self.char = char
+        
+        if self.max == 0:
+            self.draw = self.__emptydraw__
+        
         self.draw()
 
     def draw(self):
+
         now = time.time()
         if self.value != 0:
             remaining = ((now - self.start_time) / self.value) * (self.max - self.value)
@@ -26,6 +31,9 @@ class ProgressBar(object):
         sys.stderr.write("%s : %s %s\r" % (caption_string, progress_string, eta_string))
         if self.value >= self.max:
             sys.stderr.write("\n -- TOTAL TIME  : %2.4fs -- \n" % (now - self.start_time))
+
+    def __emptydraw__(self):
+        pass
 
     def __call__(self, update = 1):
         self.update(update = update)
