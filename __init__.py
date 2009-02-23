@@ -2,5 +2,5 @@
 #
 #
 
-__all__ = ['log', 'decorators', 'recursive', 'arguments', 'infos']
+__all__ = ['log', 'decorators',  'arguments', 'infos', 'iter']
 
