@@ -81,6 +81,7 @@ def deprecated(fct):
         return fct(*args, **kwargs)
     return wrapper
 
+
 def loggedcall(fct):
     """
     This is a decorator which log function call.
@@ -101,6 +102,7 @@ def addmethod(instance):
         setattr(instance, fct.func_name, fct)
         return fct
     return decorator
+
 
 class memoizehd(object):
     """
@@ -155,7 +157,7 @@ class memoize(object):
                 self.return_dict[args.__repr__()] = return_value
             return return_value
         return wrapper
-        
+
 
 def timedcall(fct):
     @wraps(fct)
