@@ -1,5 +1,6 @@
 import os
 import copy
+import traceback
 
 import logging
 DEBUG = os.environ.get('DEBUG', False) in ["True","true","1", "TRUE"]
@@ -12,22 +13,31 @@ class Event(object):
 
     """
     name = ""
+    __id__ = -1
+
+    def __next_id__(self):
+        res = self.__id__ = self.__id__ + 1
+        return res
+
     def __init__(self):
         """
         Init procedure
         """
         self.clear()
 
-    def addObserver(self, obj, *args, **kw):
+
+    def addObserver(self, obj, *args):
         """
         This method add an observer for this event. Every argument passed to
         this function will be forwarded to the callback when the event is fired
         """
         DEBUG and logger.debug('Add an observer to : %s' % self.name)
-        if callable(obj):
-            self.observers[obj] = [args, kw]
-        else:
+        if not callable(obj):
             raise RuntimeError("Callback must be callable")
+
+        id = self.__next_id__()
+        self.observers[id] = (obj, args)
+        return id
 
     def removeObserver(self, obj):
         """
@@ -41,9 +51,12 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        DEBUG and logger.info("Dispatching event : %s" % self.name)
-        for callback, (cargs, ckw) in self.observers.iteritems():
-            callback(*(args + cargs), **ckw)
+        DEBUG and logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
+        for callback, cargs in self.observers.itervalues():
+            try:
+                callback(*(args + cargs))
+            except Exception, e:
+                traceback.print_exc()
 
     def __call__(self, *args):
         self.dispatch(*args)
@@ -59,10 +72,13 @@ class Event(object):
 
 class ThreadedEvent(Event):
     def dispatch(self, *args):
-        DEBUG and logger.info("Dispatching event : %s" % self.name)
+        DEBUG and logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
         o2 = copy.copy(self.observers)
-        for callback, (cargs, ckw) in o2.iteritems():
-            callback(*(args + cargs), **ckw)
+        for callback, cargs in o2.itervalues():
+            try:
+                callback(*(args + cargs))
+            except Exception, e:
+                traceback.print_exc()
 
 
 class EventDispatcherBase(object):
