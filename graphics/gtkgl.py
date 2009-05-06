@@ -3,8 +3,42 @@ import gtk.gtkgl
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 
 import gobject
+
+import scipy
+
+
+class Actor(object):
+    def __init__(self):
+        self.visible = True
+        self.p = scipy.eye(4)
+
+    def display(self):
+        if self.visible:
+            glPushMatrix()
+            glMultMatrixf(self.p)
+            self.draw()
+            glPopMatrix()
+
+    def draw(self):
+        pass
+
+class GridActor(Actor):
+    def __init__(self, ran = range(0, 550, 50)):
+        Actor.__init__(self)
+        self.range = ran
+
+    def draw(self):
+        glBegin(GL_LINES)
+        for i in self.range:
+            glColor3f(1.0, 1.0, 1.0)
+            glVertex3f(i, 0, 0)
+            glVertex3f(i, 500, 0)
+            glVertex3f(500, i, 0)
+            glVertex3f(0, i, 0)
+        glEnd()
 
 
 class Polyline:
@@ -57,10 +91,10 @@ class GLRenderer():
 
     def __init__(self):
         self.bstate = [False] * 10
-        self.actors = []
+        self.actors = [GridActor()]
         self.key_handlers = {'q' : self.stop}
 
-        self.toggle_types = []
+        self.toggle_types = [GridActor]
         area = GLDrawingArea()
         self.set_drawing_area(area)
 
@@ -113,7 +147,7 @@ class GLRenderer():
         Called on a key press event. Dispatch the event to the right function
         """
         try:
-            ival = int(evt.keyval)
+            ival = int(chr(evt.keyval))
             if ival < len(self.toggle_types):
                 self.toggle_actor(self.toggle_types[ival])
                 area.queue_draw()
@@ -188,6 +222,7 @@ class GLRenderer():
         gldrawable.gl_begin(glcontext)
 
         glEnable(GL_DEPTH_TEST)
+        glutInit([])
 
         gldrawable.gl_end()
 
