@@ -1,3 +1,5 @@
+import logging
+
 import gtk
 import gtk.gtkgl
 
@@ -8,6 +10,8 @@ from OpenGL.GLUT import *
 import gobject
 
 import scipy
+
+logger = logging.getLogger(__name__)
 
 
 class Actor(object):
@@ -26,17 +30,18 @@ class Actor(object):
         pass
 
 class GridActor(Actor):
-    def __init__(self, ran = range(0, 550, 50)):
+    def __init__(self, scalex = 500, scaley = 500, n = 10):
         Actor.__init__(self)
-        self.range = ran
+        self.p = scipy.diag([scalex, scaley, 1, 1])
+        self.ran = scipy.arange(0, 1.0 + 1.0 / n, 1.0 / n)
 
     def draw(self):
+        glColor3f(1.0, 1.0, 1.0)
         glBegin(GL_LINES)
-        for i in self.range:
-            glColor3f(1.0, 1.0, 1.0)
+        for i in self.ran:
             glVertex3f(i, 0, 0)
-            glVertex3f(i, 500, 0)
-            glVertex3f(500, i, 0)
+            glVertex3f(i, 1.0, 0)
+            glVertex3f(1.0, i, 0)
             glVertex3f(0, i, 0)
         glEnd()
 
@@ -89,10 +94,12 @@ class GLRenderer():
 
     FPS = 15
 
-    def __init__(self):
+    def __init__(self, stop = True, grid = (1, 1)):
         self.bstate = [False] * 10
-        self.actors = [GridActor()]
-        self.key_handlers = {'q' : self.stop}
+        self.actors = [GridActor(scalex = grid[0], scaley = grid[1])]
+        self.key_handlers = {}
+        if stop:
+            self.key_handlers['q'] = self.stop
 
         self.toggle_types = [GridActor]
         area = GLDrawingArea()
@@ -254,7 +261,10 @@ class GLRenderer():
         """
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         for a in self.actors:
-            a.display()
+            try:
+                a.display()
+            except Exception, e:
+                print e
 
     def start(self):
         gtk.main()
