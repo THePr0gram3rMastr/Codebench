@@ -6,8 +6,9 @@ import copy
 import traceback
 
 import logging
-DEBUG = os.environ.get('DEBUG', False) in ["True","true","1", "TRUE"]
-logger = logging.getLogger(__name__) if DEBUG else None
+logger = logging.getLogger(__name__)
+
+
 
 class Event(object):
     """
@@ -34,7 +35,8 @@ class Event(object):
         This method add an observer for this event. Every argument passed to
         this function will be forwarded to the callback when the event is fired
         """
-        DEBUG and logger.debug('Add an observer to : %s' % self.name)
+        if logger.isEnabledFor(logging.DEBUG): 
+            logger.debug('Add an observer to : %s' % self.name)
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
@@ -46,7 +48,8 @@ class Event(object):
         """
         This method remove an observer for the event.
         """
-        DEBUG and logger.info("Removing event observer : %s" % self.name)
+        if logger.isEnabledFor(logging.DEBUG): 
+            DEBUG and logger.info("Removing event observer : %s" % self.name)
         del self.observers[obj]
 
     def dispatch(self, *args):
@@ -54,7 +57,8 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        DEBUG and logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
+        if logger.isEnabledFor(logging.INFO):
+            logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
         for callback, cargs in self.observers.itervalues():
             try:
                 callback(*(args + cargs))
@@ -75,14 +79,14 @@ class Event(object):
 
 class ThreadedEvent(Event):
     def dispatch(self, *args):
-        DEBUG and logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
+        if logger.isEnabledFor(logging.INFO):
+            logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
         o2 = copy.copy(self.observers)
         for callback, cargs in o2.itervalues():
             try:
                 callback(*(args + cargs))
             except Exception, e:
                 traceback.print_exc()
-
 
 class EventDispatcherBase(object):
     """
@@ -98,7 +102,8 @@ class EventDispatcherBase(object):
         """
         for evt_name in self.events:
             if hasattr(self, evt_name + "Event"):
-                DEBUG and logger.warning("Event Function Override -- %s --" % evt_name)
+                if logger.isEnabledFor(logging.WARNING):
+                    logger.warning("Event Function Override -- %s --" % evt_name)
             else:
                 evt = self.event_type()
                 setattr(self, evt_name + "Event", evt)
@@ -113,7 +118,8 @@ class EventDispatcherBase(object):
             try:
                 getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kw)
             except AttributeError, err:
-                DEBUG and logger.warning("Object : %s do not have attribute -- %s --" % \
+                if logger.isEnabledFor(logging.WARNING):
+                    logger.warning("Object : %s do not have attribute -- %s --" % \
                                (repr(obj), evt))
 
     def removeObserver(self, obj):
@@ -124,7 +130,8 @@ class EventDispatcherBase(object):
             try:
                 getattr(self, evt).removeObserver(getattr(obj, evt), evt, *args, **kw)
             except AttributeError, err:
-                DEBUG and logger.warning("Object : %s do not have attribute -- %s --" % \
+                if logger.isEnabledFor(logging.WARNING):
+                    logger.warning("Object : %s do not have attribute -- %s --" % \
                                (repr(obj), evt))
 
     def clear(self):
@@ -138,10 +145,4 @@ class EventDispatcherBase(object):
 
 class ThreadedEventDispatcher(EventDispatcherBase):
     event_type = ThreadedEvent
-
-
-
-
-class EventDispatcher(EventDispatcherBase):
-    events = ['connected', 'disconnected']
 

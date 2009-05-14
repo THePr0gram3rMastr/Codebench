@@ -1,10 +1,49 @@
+import logging
+
 import gtk
 import gtk.gtkgl
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 
 import gobject
+
+import scipy
+
+logger = logging.getLogger(__name__)
+
+
+class Actor(object):
+    def __init__(self):
+        self.visible = True
+        self.p = scipy.eye(4)
+
+    def display(self):
+        if self.visible:
+            glPushMatrix()
+            glMultMatrixf(self.p)
+            self.draw()
+            glPopMatrix()
+
+    def draw(self):
+        pass
+
+class GridActor(Actor):
+    def __init__(self, scalex = 500, scaley = 500, n = 10):
+        Actor.__init__(self)
+        self.p = scipy.diag([scalex, scaley, 1, 1])
+        self.ran = scipy.arange(0, 1.0 + 1.0 / n, 1.0 / n)
+
+    def draw(self):
+        glColor3f(1.0, 1.0, 1.0)
+        glBegin(GL_LINES)
+        for i in self.ran:
+            glVertex3f(i, 0, 0)
+            glVertex3f(i, 1.0, 0)
+            glVertex3f(1.0, i, 0)
+            glVertex3f(0, i, 0)
+        glEnd()
 
 
 class Polyline:
@@ -55,12 +94,14 @@ class GLRenderer():
 
     FPS = 15
 
-    def __init__(self):
+    def __init__(self, stop = True, grid = (1, 1)):
         self.bstate = [False] * 10
-        self.actors = []
-        self.key_handlers = {'q' : self.stop}
+        self.actors = [GridActor(scalex = grid[0], scaley = grid[1])]
+        self.key_handlers = {}
+        if stop:
+            self.key_handlers['q'] = self.stop
 
-        self.toggle_types = []
+        self.toggle_types = [GridActor]
         area = GLDrawingArea()
         self.set_drawing_area(area)
 
@@ -113,7 +154,7 @@ class GLRenderer():
         Called on a key press event. Dispatch the event to the right function
         """
         try:
-            ival = int(evt.keyval)
+            ival = int(chr(evt.keyval))
             if ival < len(self.toggle_types):
                 self.toggle_actor(self.toggle_types[ival])
                 area.queue_draw()
@@ -188,6 +229,7 @@ class GLRenderer():
         gldrawable.gl_begin(glcontext)
 
         glEnable(GL_DEPTH_TEST)
+        glutInit([])
 
         gldrawable.gl_end()
 
@@ -219,7 +261,10 @@ class GLRenderer():
         """
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         for a in self.actors:
-            a.display()
+            try:
+                a.display()
+            except Exception, e:
+                print e
 
     def start(self):
         gtk.main()
