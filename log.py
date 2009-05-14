@@ -1,3 +1,6 @@
+#
+#
+# vim: ts=4 sw=4 sts=0 noexpandtab:
 import logging
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
