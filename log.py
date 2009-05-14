@@ -15,7 +15,8 @@ COLORS = {
     'INFO': GREEN,
     'DEBUG': BLUE,
     'CRITICAL': RED,
-    'ERROR': RED
+    'ERROR': RED,
+    'EXCEPTION' : CYAN
 }
 
 
@@ -54,8 +55,9 @@ if __name__ == "__main__":
     logger.debug("debug message")
     logger.info("info message")
     logger.warn("warn message")
-    logger.error("error message")
     logger.critical("critical message")
+    logger.error("error message")
+    logger.exception("asdf")
 
 
 
