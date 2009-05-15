@@ -30,7 +30,7 @@ class Actor(object):
         pass
 
 class GridActor(Actor):
-    def __init__(self, scalex = 500, scaley = 500, n = 10):
+    def __init__(self, scalex = 1, scaley = 1, n = 10):
         Actor.__init__(self)
         self.p = scipy.diag([scalex, scaley, 1, 1])
         self.ran = scipy.arange(0, 1.0 + 1.0 / n, 1.0 / n)
@@ -94,9 +94,9 @@ class GLRenderer():
 
     FPS = 15
 
-    def __init__(self, stop = True, grid = (1, 1)):
+    def __init__(self, stop = True):
         self.bstate = [False] * 10
-        self.actors = [GridActor(scalex = grid[0], scaley = grid[1])]
+        self.actors = []
         self.key_handlers = {}
         if stop:
             self.key_handlers['q'] = self.stop
@@ -171,7 +171,6 @@ class GLRenderer():
         except ValueError, e:
             pass
 
-
     def configure_event(self, area, evt):
         """
         This is called when the window is resized. We reinitialize the
@@ -195,7 +194,7 @@ class GLRenderer():
         """
         self.lastx = evt.x
         self.lasty = evt.y
-        self.bstate[evt.button - 1] = (evt.state == 0)
+        self.bstate[evt.button - 1] = not self.bstate[evt.button - 1]
 
     def motion_event(self, area, evt):
         """
