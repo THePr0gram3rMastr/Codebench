@@ -5,10 +5,6 @@ import os
 import copy
 import traceback
 
-import logging
-logger = logging.getLogger(__name__)
-
-
 
 class Event(object):
     """
@@ -35,8 +31,6 @@ class Event(object):
         This method add an observer for this event. Every argument passed to
         this function will be forwarded to the callback when the event is fired
         """
-        if logger.isEnabledFor(logging.DEBUG): 
-            logger.debug('Add an observer to : %s' % self.name)
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
@@ -48,8 +42,6 @@ class Event(object):
         """
         This method remove an observer for the event.
         """
-        if logger.isEnabledFor(logging.DEBUG): 
-            DEBUG and logger.info("Removing event observer : %s" % self.name)
         del self.observers[obj]
 
     def dispatch(self, *args):
@@ -57,8 +49,6 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        if logger.isEnabledFor(logging.INFO):
-            logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
         for callback, cargs in self.observers.itervalues():
             try:
                 callback(*(args + cargs))
@@ -79,8 +69,6 @@ class Event(object):
 
 class ThreadedEvent(Event):
     def dispatch(self, *args):
-        if logger.isEnabledFor(logging.INFO):
-            logger.info("Dispatching event (%d) from %s : %s" % (len(self.observers), str(self.__class__), self.name))
         o2 = copy.copy(self.observers)
         for callback, cargs in o2.itervalues():
             try:
@@ -108,7 +96,6 @@ class EventDispatcherBase(object):
                 evt = self.event_type()
                 setattr(self, evt_name + "Event", evt)
                 evt.name = evt_name
-
 
     def addObserver(self, obj, *args, **kw):
         """
