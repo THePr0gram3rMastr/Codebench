@@ -1,3 +1,7 @@
+#
+#
+# vim: ts=4 sw=4 sts=0 noexpandtab:
+#
 import time 
 import sys
 

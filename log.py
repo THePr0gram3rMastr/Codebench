@@ -1,3 +1,6 @@
+#
+#
+# vim: ts=4 sw=4 sts=0 noexpandtab:
 import logging
 
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
@@ -10,7 +13,8 @@ COLORS = {
     'INFO': GREEN,
     'DEBUG': BLUE,
     'CRITICAL': RED,
-    'ERROR': RED
+    'ERROR': RED,
+    'EXCEPTION' : CYAN
 }
 
 
@@ -40,8 +44,9 @@ if __name__ == "__main__":
     logger.debug("debug message")
     logger.info("info message")
     logger.warn("warn message")
-    logger.error("error message")
     logger.critical("critical message")
+    logger.error("error message")
+    logger.exception("asdf")
 
 
 
