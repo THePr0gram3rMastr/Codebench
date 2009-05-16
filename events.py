@@ -1,10 +1,11 @@
 #
 #
-# vim: ts=4 sw=4 sts=0 noexpandtab:
+# vim: ts=4 sw=4 sts=0 expandtab:
 import os
 import copy
 import traceback
 
+import generator
 
 class Event(object):
     """
@@ -13,18 +14,13 @@ class Event(object):
 
     """
     name = ""
-    __id__ = -1
-
-    def __next_id__(self):
-        res = self.__id__ = self.__id__ + 1
-        return res
 
     def __init__(self):
         """
         Init procedure
         """
         self.clear()
-
+        self.uid_gen = generator.uid_generator()
 
     def addObserver(self, obj, *args):
         """
@@ -34,7 +30,7 @@ class Event(object):
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
-        id = self.__next_id__()
+        id = self.uid_gen.next()
         self.observers[id] = (obj, args)
         return id
 
@@ -127,7 +123,6 @@ class EventDispatcherBase(object):
         """
         for evt in self.events:
             getattr(self, evt + "Event").clear()
-
 
 
 class ThreadedEventDispatcher(EventDispatcherBase):
