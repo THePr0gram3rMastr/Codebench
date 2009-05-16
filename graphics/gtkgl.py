@@ -71,7 +71,7 @@ class GLDrawingArea(gtk.DrawingArea, gtk.gtkgl.Widget):
     def __init__(self):
         gtk.DrawingArea.__init__(self)
 
-class GLRenderer():
+class GLRenderer(object):
     zoom    = 3000
     rx    = 0
     ry    = 0.001
@@ -101,7 +101,7 @@ class GLRenderer():
         if stop:
             self.key_handlers['q'] = self.stop
 
-        self.toggle_types = [GridActor]
+        self.toggle_types = []
         area = GLDrawingArea()
         self.set_drawing_area(area)
 
