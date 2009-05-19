@@ -4,8 +4,11 @@
 import os
 import copy
 import traceback
+import logging
 
 import generator
+
+logger = logging.getLogger(__name__)
 
 class Event(object):
     """
@@ -86,7 +89,6 @@ class EventDispatcherBase(object):
         """
         for evt_name in self.events:
             if hasattr(self, evt_name + "Event"):
-                if logger.isEnabledFor(logging.WARNING):
                     logger.warning("Event Function Override -- %s --" % evt_name)
             else:
                 evt = self.event_type()
