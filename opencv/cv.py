@@ -16,7 +16,7 @@
 # ----------------------------------------------------------------------------
 
 from ctypes import *
-from opencv.cxcore import *
+from cxcore import *
 
 # Use xrange if available (pre-3.0)
 try:
