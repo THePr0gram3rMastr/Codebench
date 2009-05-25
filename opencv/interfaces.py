@@ -17,6 +17,7 @@
 
 from ctypes import *
 from cxcore import *
+import cxcore
 from highgui import CV_CVTIMG_SWAP_RB
 
 
@@ -79,18 +80,18 @@ except ImportError:
 # numpy's ndarray -- by Minh-Tri Pham
 #-----------------------------------------------------------------------------
 try:
-    import numpy as NP
+    import numpy
 
     # create a read/write buffer from memory
     from_memory = pythonapi.PyBuffer_FromReadWriteMemory
     from_memory.restype = py_object
     
     def as_numpy_2darray(ctypes_ptr, width_step, width, height, dtypename, nchannels=1):
-        esize = NP.dtype(dtypename).itemsize
+        esize = numpy.dtype(dtypename).itemsize
         if width_step == 0:
             width_step = width*esize
         buf = from_memory(ctypes_ptr, width_step*height)
-        arr = NP.frombuffer(buf, dtype=dtypename, count=width*nchannels*height)
+        arr = numpy.frombuffer(buf, dtype=dtypename, count=width*nchannels*height)
         if nchannels > 1:
             arr = arr.reshape(height, width, nchannels)
             arr.strides = (width_step, esize*nchannels, esize)
@@ -100,14 +101,14 @@ try:
         return arr
         
     ipldepth2dtype = {
-        IPL_DEPTH_1U: 'bool',
-        IPL_DEPTH_8U: 'uint8',
-        IPL_DEPTH_8S: 'int8',
-        IPL_DEPTH_16U: 'uint16',
-        IPL_DEPTH_16S: 'int16',
-        IPL_DEPTH_32S: 'int32',
-        IPL_DEPTH_32F: 'float32',
-        IPL_DEPTH_64F: 'float64',
+        IPL_DEPTH_1U:  numpy.bool,
+        IPL_DEPTH_8U:  numpy.uint8,
+        IPL_DEPTH_8S:  numpy.int8,
+        IPL_DEPTH_16U: numpy.uint16,
+        IPL_DEPTH_16S: numpy.int16,
+        IPL_DEPTH_32S: numpy.int32,
+        IPL_DEPTH_32F: numpy.float32,
+        IPL_DEPTH_64F: numpy.float64,
     }
 
     def _iplimage_as_numpy_array(self):
@@ -125,50 +126,58 @@ try:
         return cvGetImage(cvCreateMatFromNumpyArray(a))
 
 
-
-    matdepth2dtype = {
-        CV_8U: 'uint8',
-        CV_8S: 'int8',
-        CV_16U: 'uint16',
-        CV_16S: 'int16',
-        CV_32S: 'int32',
-        CV_32F: 'float32',
-        CV_64F: 'float64',
+    mat_to_dtype = {
+        CV_8U  : numpy.uint8,
+        CV_8S  : numpy.int8,
+        CV_16U : numpy.uint16,
+        CV_16S : numpy.int16,
+        CV_32S : numpy.int32,
+        CV_32F : numpy.float32,
+        CV_64F : numpy.float64,
     }
+    
+    dtype_to_mat = {
+        numpy.dtype('uint8')   : 'CV_8U',
+        numpy.dtype('int8')    : 'CV_8S',
+        numpy.dtype('uint16')  : 'CV_16U',
+        numpy.dtype('int16')   : 'CV_16S',
+        numpy.dtype('int32')   : 'CV_32S',
+        numpy.dtype('float32') : 'CV_32F',
+        numpy.dtype('float64') : 'CV_64F',
+    }
+
+
 
     def _cvmat_as_numpy_array(self):
         """Converts a CvMat into ndarray"""
-        return as_numpy_2darray(self.data.ptr, self.step, self.cols, self.rows, matdepth2dtype[CV_MAT_DEPTH(self.type)], CV_MAT_CN(self.type))
+        return as_numpy_2darray(self.data.ptr, self.step, self.cols, self.rows, mat_to_dtype[CV_MAT_DEPTH(self.type)], CV_MAT_CN(self.type))
         
     CvMat.as_numpy_array = _cvmat_as_numpy_array
 
 
-    def cvCreateMatFromNumpyArray(a):
+    def cvCreateMatFromNumpyArray(arr):
         """Creates a CvMat from a numpy array. Raises TypeError if not successful.
 
         The numpy array must be of rank 1 or 2.
         If it is of rank 1, it is converted into a row vector.
         If it is of rank 2, it is converted into a matrix.
         """
-        if not isinstance(a, NP.ndarray):
+        if not isinstance(arr, numpy.ndarray):
             raise TypeError("'a' is not a numpy ndarray.")
+        shape = arr.shape
 
-        for i in matdepth2dtype:
-            if NP.dtype(matdepth2dtype[i]) == a.dtype:
-                mattype = i
-                break
-        else:
-            raise TypeError("The dtype of 'a' is not supported.")
-
-        rank = len(a.shape)
+        rank = len(shape)
         if rank == 1:
-            b = cvMat(a.shape[0], 1, mattype, a.ctypes.data, a.strides[0])
+            shape = (shape[0], 1,1)
         elif rank == 2:
-            b = cvMat(a.shape[0], a.shape[1], mattype, a.ctypes.data, a.strides[0])
-        else:
-            raise TypeError("The rank of 'a' must be either 1 or 2.")
+            shape = (shape[0], shape[1], 1,)
 
-        b.depends = (a,)
+        depth, width, height = shape
+
+        mat_type = dtype_to_mat[arr.dtype] + "C%d" % depth
+        b = cvMat(height, width,  getattr(cxcore, mat_type), arr.ctypes.data)
+
+        b.depends = (arr,)
 
         return b
 
@@ -177,8 +186,8 @@ try:
     def _cvmatnd_as_numpy_array(self):
         """Converts a CvMatND into ndarray"""
         nc = CV_MAT_CN(self.type)
-        dtypename = matdepth2dtype[CV_MAT_DEPTH(self.type)]
-        esize = NP.dtype(dtypename).itemsize
+        dtypename = mat_to_dtype[CV_MAT_DEPTH(self.type)]
+        esize = numpy.dtype(dtypename).itemsize
         
         sd = self.dim[:self.dims]
         strides = [x.step for x in sd]
@@ -189,35 +198,14 @@ try:
             size += [nc]
             
         buf = from_memory(self.data.ptr, strides[0]*size[0])
-        arr = NP.frombuffer(buf, dtype=dtypename, count=NP.prod(size)).reshape(size)
+        arr = numpy.frombuffer(buf, dtype=dtypename, count=numpy.prod(size)).reshape(size)
         arr.strides = tuple(strides)
             
         return arr
         
     CvMatND.as_numpy_array = _cvmatnd_as_numpy_array
 
-	
-    def cvCreateMatNDFromNumpyArray(a):
-        """Creates a CvMatND from a numpy array. Raises TypeError if not successful."""
-        if not isinstance(a, NP.ndarray):
-            raise TypeError("'a' is not a numpy ndarray.")
-
-        for i in matdepth2dtype:
-            if NP.dtype(matdepth2dtype[i]) == a.dtype:
-                mattype = i
-                break
-        else:
-            raise TypeError("The dtype of 'a' is not supported.")
-
-        b = cvMatND(a.shape, mattype, a.ctypes.data)
-        for i in range(len(a.strides)):
-            b.dim[i].stype = a.strides[i]
-        b.depends = (a,)
-
-        return b
-
-    __all__ += ['cvCreateImageFromNumpyArray', 'cvCreateMatFromNumpyArray', 
-        'cvCreateMatNDFromNumpyArray']
+    __all__ += ['cvCreateImageFromNumpyArray', 'cvCreateMatFromNumpyArray']
 except ImportError:
     pass
 
