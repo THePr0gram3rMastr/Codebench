@@ -1,6 +1,6 @@
 #
 #
-# vim: ts=4 sw=4 sts=0 noexpandtab:
+# vim: ts=4 sw=4 sts=0 expandtab:
 import logging
 
 import gtk
@@ -33,13 +33,14 @@ class Actor(object):
         pass
 
 class GridActor(Actor):
+    color = (1.0, 1.0, 1.0)
     def __init__(self, scalex = 1, scaley = 1, n = 10):
         Actor.__init__(self)
         self.p = scipy.diag([scalex, scaley, 1, 1])
         self.ran = scipy.arange(0, 1.0 + 1.0 / n, 1.0 / n)
 
     def draw(self):
-        glColor3f(1.0, 1.0, 1.0)
+        glColor3fv(self.color)
         glBegin(GL_LINES)
         for i in self.ran:
             glVertex3f(i, 0, 0)
@@ -115,6 +116,7 @@ class GLRenderer(object):
 
         main.set_title("OpenGL Gtk Renderer")
         main.show_all()
+        self.background = (0.0, 0.0, 0.0, 0.0)
 
 
     def toggle_actor(self, type):
@@ -251,6 +253,7 @@ class GLRenderer(object):
         glTranslatef(self.tx, self.ty, 0)
         glRotatef(self.rx, 1, 0, 0)
         glRotatef(self.ry, 0, 1, 0)
+        glClearColor(*self.background)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         self.render()
 
