@@ -1,4 +1,7 @@
 import ctypes
+import ctypes.util
+import string
+from random import choice
 
 O_CREAT = 0100
 O_EXCL = 0200
@@ -17,7 +20,7 @@ PROT_EXEC = 0x4
 MAP_SHARED = 0x01
 MAP_PRIVATE = 0x02
 
-mod = ctypes.CDLL('librt.so')
+mod = ctypes.CDLL(ctypes.util.find_library('rt'))
 mod.sem_open.restype = ctypes.c_void_p
 mod.sem_wait.argtypes = [ctypes.c_void_p]
 mod.sem_trywait.argtypes = [ctypes.c_void_p]
@@ -46,7 +49,9 @@ close = mod.close
 write = mod.write
 
 class PosixSemaphore(object):
-	def __init__(self, name, init = False, value = 0, perm = 00662):
+	def __init__(self, name = None, init = False, value = 0, perm = 00662):
+		if name is None:
+			name = 'py' + ''.join([choice(string.letters + string.digits) for i in range(1, 10)])
 		self.init = init
 		self.name = name
 		if self.init:
@@ -80,7 +85,10 @@ class SharedMemory(object):
 	shm_void = -1
 	shm_f = -1
 	init = False
-	def __init__(self, name, size, init = False, perms = 00662):
+	def __init__(self, size, name = None,  init = False, perms = 00662):
+		if name is None:
+			name = 'py' + ''.join([choice(string.letters + string.digits) for i in range(1, 10)])
+
 		self.name = name
 		self.size = size
 		if init:
