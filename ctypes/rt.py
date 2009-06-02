@@ -7,6 +7,9 @@ S_IRUSR = 00400
 S_IWUSR = 00200
 S_IROTH = 00004
 
+O_RDONLY = 00
+O_RDWR = 02
+
 PROT_READ = 0x1
 PROT_WRITE = 0x2
 PROT_EXEC = 0x4
@@ -25,7 +28,7 @@ mod.mmap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, 
 mod.mmap.restype = ctypes.c_void_p
 mod.munmap.argtypes = [ctypes.c_void_p, ctypes.c_int]
 
-mod.write.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+mod.write.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
 
 sem_open = mod.sem_open
 sem_close = mod.sem_close
@@ -72,30 +75,37 @@ class PosixSemaphore(object):
 
 
 
+
 class SharedMemory(object):
+	shm_void = -1
+	shm_f = -1
+	init = False
 	def __init__(self, name, size, init = False, perms = 00662):
-		self.init = init
 		self.name = name
 		self.size = size
-		if self.init:
-			self.shm_f = shm_open(name, O_CREAT | O_EXCL,  S_IROTH | S_IWUSR | S_IRUSR)
+		if init:
+		    cflag, perms, mflag = O_RDWR | O_CREAT | O_EXCL, S_IROTH | S_IWUSR | S_IRUSR, PROT_READ | PROT_WRITE
 		else:
-			self.shm_f = shm_open(name, 0, 0)
+		    cflag, perms, mflag = O_RDONLY, 0, PROT_READ
 
+		shm_f = shm_open(name, cflag, perms)
+		if shm_f == -1:
+		    raise RuntimeError()
 
-		if self.shm_f == -1:
-			shm_unlink(name)
+		write(shm_f, ctypes.cast(ctypes.c_char_p("\x00" * size),
+					 ctypes.c_void_p), size)
+
+		self.shm_void = mmap(None, size, mflag, MAP_SHARED, shm_f, 0)
+		close(shm_f)
+		if self.shm_void == None:
+			if self.shm_f != -1:
+			    shm_unlink(self.name)
 			raise RuntimeError()
-
-		empty_buf = (ctypes.c_byte * size)()
-		ptr = ctypes.cast(empty_buf, ctypes.c_void_p)
-
-		print write(self.shm_f, ptr, size, 0), ptr, size
-
-		self.shm_void = mmap(None, size, PROT_READ | PROT_WRITE, MAP_SHARED, self.shm_f, 0)
-		if self.shm_void != None:
-			raise RuntimeError()
+		self.init = init
 
 
 	def __del__(self):
-		shm_unlink(self.name)
+		if self.init:
+		    shm_unlink(self.name)
+		munmap(self.shm_void, self.size)
+
