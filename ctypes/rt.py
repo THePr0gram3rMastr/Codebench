@@ -2,6 +2,15 @@ import ctypes
 import ctypes.util
 import string
 from random import choice
+import time
+import calendar
+
+
+class timespec(ctypes.Structure):
+    _fields_ = [('secs', ctypes.c_long),
+                ('nsecs', ctypes.c_long),
+               ]
+
 
 O_CREAT = 0100
 O_EXCL = 0200
@@ -27,6 +36,8 @@ mod.sem_trywait.argtypes = [ctypes.c_void_p]
 mod.sem_close.argtypes = [ctypes.c_void_p]
 mod.sem_post.argtypes = [ctypes.c_void_p]
 
+mod.sem_timedwait.argtypes = [ctypes.c_void_p, ctypes.POINTER(timespec)]
+
 mod.mmap.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
 mod.mmap.restype = ctypes.c_void_p
 mod.munmap.argtypes = [ctypes.c_void_p, ctypes.c_int]
@@ -36,6 +47,7 @@ mod.write.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_int]
 sem_open = mod.sem_open
 sem_close = mod.sem_close
 sem_trywait = mod.sem_trywait
+sem_timedwait = mod.sem_timedwait
 sem_wait = mod.sem_wait
 sem_post = mod.sem_post
 sem_unlink = mod.sem_unlink
@@ -71,12 +83,17 @@ class PosixSemaphore(object):
 		if 0 != sem_wait(self.sem_p):
 			raise RuntimeError()
 
+
 	def post(self):
 		if 0 != sem_post(self.sem_p):
 			raise RuntimeError()
 
 	def trywait(self):
-		return sem_trywait(self.sem_p)
+		return sem_trywait(self.sem_p) == 0
+
+        def timedwait(self, sec, nsec = 0):
+		abssec = calendar.timegm(time.gmtime()) + sec
+		return sem_timedwait(self.sem_p, ctypes.pointer(timespec(abssec, 0))) == 0
 
 
 
