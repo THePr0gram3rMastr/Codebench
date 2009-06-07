@@ -43,7 +43,7 @@ class SharedMemory(object):
         def fromjson(cls, jsonstring):
             dict = json.loads(jsonstring)
             size = dict.pop('size')
-            cls(size, **dict)
+            return cls(size, **dict)
 
 
     def __del__(self):
