@@ -41,7 +41,7 @@ class SharedMemory(object):
     if json is not None:
         @classmethod
         def fromjson(cls, jsonstring):
-            dict = json.loads(jsonstring)
+            dict = json.loads(jsonstring, encoding = "ASCII")
             size = dict.pop('size')
             return cls(size, **dict)
 
