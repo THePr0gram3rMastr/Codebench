@@ -40,11 +40,11 @@ class SharedMemory(object):
 
     if json is not None:
         @classmethod
-        def fromjson(cls, jsonstring, encoding = "ASCII"):
-            dict = json.loads(jsonstring, encoding = encoding)
+        def fromjson(cls, jsonstring):
+            dict = json.loads(jsonstring)
             size = dict.pop('size')
-            print dict
-            return cls(size, **dict)
+            filename = str(dict.pop('filename'))
+            return cls(size, filename = filename)
 
 
     def __del__(self):
