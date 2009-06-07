@@ -10,6 +10,11 @@ try:
 except ImportError, err:
     scipy = None
 
+try:
+    import simplejson as json
+except:
+    json = None
+
 class SharedMemory(object):
     owner = False
     xml_tag = "shmem"
@@ -32,6 +37,14 @@ class SharedMemory(object):
         el = etree.fromstring(xmlstring)
         size = int(el.attrib.pop('size'))
         return cls(size, **el.attrib)
+
+    if json is not None:
+        @classmethod
+        def fromjson(cls, jsonstring):
+            dict = json.loads(jsonstring)
+            dict.pop('size')
+            cls(size, **el.attrib)
+
 
     def __del__(self):
         if self.owner:
