@@ -19,9 +19,7 @@ def build_element(root, cval):
     """
     This method build the element depending on the type of the value
     """
-    if isinstance(cval, XMLify):
-            root.append(cval.XMLDescription())
-    elif hasattr(cval, '__iter__'):
+    if hasattr(cval, '__iter__'):
         for sval in cval:
             c = etree.Element(root.tag[:-1])
             c.text = sval
@@ -29,54 +27,43 @@ def build_element(root, cval):
     else:
         root.text = None if cval is None else str(cval)
 
-class XMLify(object):
+
+class Marshall(object):
     """
-    This class provide 2 method for updating and describing a python object as a
-    leaf Element. 
+    Small marchaling amd updating class
+
+    xml_tag
+    xml_childs
+    xml_attributes
+    xml_updatable
     """
-    xml_attributes = []
-    xml_childs = []
-    xml_tag = "undefined"
-
-    xml_updatable = []
-
-    repr_attrs = []
-
-    def __repr__(self):
-        res =  object.__repr__(self) + ' { '
-        for attr in self.repr_attrs:
-            res += " %s : %s," % (attr, getattr(self, attr))
-        return res[:-1] + ' }'
-
-
-    def XMLDescription(self):
-        """
-        This method return the Element describing the leaf object based on
-        attributes defined in xml_attributes and xml_childs.
-        """
-        element = etree.Element(self.xml_tag)
-        for a in self.xml_attributes:
-            element.attrib[a] = str(getattr(self, a))
-        for ctag in self.xml_childs:
+    @staticmethod
+    def dump(obj):
+        element = etree.Element(obj.xml_tag)
+        for a in obj.xml_attributes:
+            element.attrib[a] = str(getattr(obj, a))
+        for ctag in obj.xml_childs:
             ce = etree.Element(ctag)
-            cval = getattr(self, ctag)
+            cval = getattr(obj, ctag)
             build_element(ce, str(cval))
             element.append(ce)
         return element
 
+    @staticmethod
+    def dumps(obj):
+        return etree.tostring(Marshall.dump(obj))
 
-    def updateFromXML(self, xmlobj):
-        """
-        This method update values based on the xmlobj passed as an argument.
-        Only update the valus of updatable variables.
-        """
-        for obj in xmlobj:
-            if obj.tag in self.xml_updatable:
-                val = '' if obj.text is None else obj.text
-                setattr(self, obj.tag, val)
+
+    @staticmethod
+    def update(obj, xmlobj):
+        for xo in xmlobj:
+            if xo.tag in obj.xml_updatable:
+                val = '' if xo.text is None else xo.text
+                setattr(obj, xo.tag, val)
             else:
                 if logger.isEnabledFor(logging.WARNING): 
-                    logger.warning("Trying to update an unupdatable attribute -- %s -- " % obj.tag)
+                    logger.warning("Trying to update an unupdatable attribute -- %s -- " % xo.tag)
+
 
 
 
