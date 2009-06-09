@@ -25,7 +25,7 @@ from highgui import CV_CVTIMG_SWAP_RB
 # Helpers for access to images for other GUI packages
 #=============================================================================
 
-__all__ = []
+__all__ = ['cvCopyImg']
 
 #-----------------------------------------------------------------------------
 # wx -- by Gary Bishop
@@ -209,3 +209,9 @@ try:
 except ImportError:
     pass
 
+
+def cvCopyImg(src, dest = None):
+    if dest is None:
+        dest = cvCreateImage((src.width, src.height), src.depth, src.nChannels)
+    cvCopy(src, dest)
+    return dest

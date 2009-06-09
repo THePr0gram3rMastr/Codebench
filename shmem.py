@@ -11,9 +11,13 @@ except ImportError, err:
     scipy = None
 
 try:
-    import simplejson as json
+    import json
 except:
-    json = None
+    try:
+        import simplejson as json
+    except:
+        json = None
+
 
 class SharedMemory(object):
     owner = False
@@ -36,14 +40,15 @@ class SharedMemory(object):
     def fromxml(cls, xmlstring):
         el = etree.fromstring(xmlstring)
         size = int(el.attrib.pop('size'))
-        return cls(size, **el.attrib)
+        filename = el.attrib.pop('filename')
+        return cls(size, filename = filename)
 
     if json is not None:
         @classmethod
         def fromjson(cls, jsonstring):
-            dict = json.loads(jsonstring)
-            size = dict.pop('size')
-            filename = str(dict.pop('filename'))
+            dct = json.loads(jsonstring)
+            size = dct.pop('size')
+            filename = str(dct.pop('filename'))
             return cls(size, filename = filename)
 
 
