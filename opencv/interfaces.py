@@ -172,7 +172,7 @@ try:
         elif rank == 2:
             shape = (shape[0], shape[1], 1,)
 
-        depth, width, height = shape
+        height, width, depth  = shape
 
         mat_type = dtype_to_mat[arr.dtype] + "C%d" % depth
         b = cvMat(height, width,  getattr(cxcore, mat_type), arr.ctypes.data)
