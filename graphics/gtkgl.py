@@ -1,10 +1,11 @@
 #
 #
 # vim: ts=4 sw=4 sts=0 expandtab:
-import logging
 
+import logging
 import gtk
 import gtk.gtkgl
+from logging import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -13,24 +14,28 @@ from OpenGL.GLUT import *
 import gobject
 
 import scipy
+import weakref
 
 logger = logging.getLogger(__name__)
 
 
 class Actor(object):
-    def __init__(self):
-        self.visible = True
-        self.p = scipy.eye(4)
-
+    visible = True
+    p = scipy.eye(4)
     def display(self):
         if self.visible:
             glPushMatrix()
             glMultMatrixf(self.p)
-            self.draw()
-            glPopMatrix()
+            try:
+                self.draw()
+            except Exception, err:
+                logger.exception(str(err))
+            finally:
+                glPopMatrix()
 
     def draw(self):
         pass
+
 
 class GridActor(Actor):
     color = (1.0, 1.0, 1.0)
@@ -75,6 +80,7 @@ class GLDrawingArea(gtk.DrawingArea, gtk.gtkgl.Widget):
     def __init__(self):
         gtk.DrawingArea.__init__(self)
 
+
 class GLRenderer(object):
     zoom    = 3000
     rx    = 0
@@ -102,20 +108,26 @@ class GLRenderer(object):
         self.bstate = [False] * 10
         self.actors = []
         self.key_handlers = {}
-        if stop:
-            self.key_handlers['q'] = self.stop
 
         self.toggle_types = []
         area = GLDrawingArea()
         self.set_drawing_area(area)
 
-        main = gtk.Window()
-        main.connect( "delete_event", self.stop )
-        main.connect("key_press_event", self.keypress_event)
-        main.add(area)
+        self.main = gtk.Window()
 
-        main.set_title("OpenGL Gtk Renderer")
-        main.show_all()
+        wself = weakref.ref(self)
+        def delete():
+                wself().stop()
+        if stop:
+            self.key_handlers['q'] = delete
+        self.main.connect( "delete_event", delete )
+        def keypress(area, evt):
+                wself().keypress_event(area, evt)
+        self.main.connect("key_press_event", keypress)
+        self.main.add(area)
+
+        self.main.set_title("OpenGL Gtk Renderer")
+        self.main.show_all()
         self.background = (0.0, 0.0, 0.0, 0.0)
 
 
@@ -137,15 +149,28 @@ class GLRenderer(object):
         display_mode = (gtk.gdkgl.MODE_RGB | gtk.gdkgl.MODE_DOUBLE)
         glconfig = gtk.gdkgl.Config(mode=display_mode)
         area.set_gl_capability(glconfig)
+        
+        wself = weakref.ref(self)
+        def expose(area, evt):
+            wself().expose_event(area, evt)
+        area.connect("expose_event", expose )
+        def configure(area, evt):
+            wself().configure_event(area, evt)
+        area.connect("configure_event", configure )
+        def motion(area, evt):
+            wself().motion_event(area, evt)
+        area.connect("motion_notify_event", motion)
+        def mouse(area, evt):
+            wself().mouse_event(area, evt)
+        area.connect("button_press_event", mouse)
+        area.connect("button_release_event", mouse)
+        def realize(area):
+            wself().realize_event(area)
+        area.connect("realize", realize)
 
-        area.connect("expose_event", self.expose_event )
-        area.connect("configure_event", self.configure_event )
-        area.connect("motion_notify_event", self.motion_event)
-        area.connect("button_press_event", self.mouse_event)
-        area.connect("button_release_event", self.mouse_event)
-        area.connect("realize", self.realize_event)
-
-        gobject.timeout_add(1000 / self.FPS, self.timed_redraw, area)
+        def redraw(area):
+            return wself().timed_redraw(area) if wself() is not None else False
+        gobject.timeout_add(1000 / self.FPS, redraw, area)
 
     def timed_redraw(self, area):
         """
@@ -211,7 +236,7 @@ class GLRenderer(object):
         self.lasty = evt.y
         redraw = False
         if  self.bstate[0]:
-            self.tx += dx * self.TRANSLATION_SPEED
+            self.tx -= dx * self.TRANSLATION_SPEED
             self.ty += dy * self.TRANSLATION_SPEED
             redraw = True
         if self.bstate[2]:
@@ -277,6 +302,9 @@ class GLRenderer(object):
     def stop(self):
         gtk.main_quit()
 
+    def __del__(self):
+        self.main.hide_all()
+
 
 Renderer = GLRenderer
 
@@ -287,4 +315,3 @@ if __name__ == '__main__':
     renderer.actors.append(actor)
 
     renderer.start()
-
