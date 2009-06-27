@@ -14,18 +14,19 @@ class Event(object):
     """
     This is a simple object which represent an event it can be dispatched which
     notifies every observer of this event
-
     """
     name = ""
-
-    def __init__(self):
+    types = None
+    def __init__(self, *args):
         """
         Init procedure
         """
         self.clear()
         self.uid_gen = generator.uid_generator()
+        if len(args) != 0:
+            self.types = args
 
-    def addObserver(self, obj, *args):
+    def addObserver(self, obj, *args, **kwarg):
         """
         This method add an observer for this event. Every argument passed to
         this function will be forwarded to the callback when the event is fired
@@ -33,9 +34,9 @@ class Event(object):
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
-        id = self.uid_gen.next()
-        self.observers[id] = (obj, args)
-        return id
+        oid = self.uid_gen.next() if 'id' not in kwarg else kwarg.pop('id')
+        self.observers[oid] = (obj, args)
+        return oid
 
     def removeObserver(self, obj):
         """
