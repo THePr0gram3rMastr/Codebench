@@ -21,11 +21,8 @@ def build_element(root, cval):
     """
     if hasattr(cval, '__iter__'):
         for sval in cval:
-            if hasattr(sval, 'xml_tag'):
-                c = Marshall.dump(sval)
-            else:
-                c = etree.Element(root.tag[:-1])
-                c.text = str(sval)
+            c = etree.Element(root.tag[:-1])
+            c.text = str(sval)
             root.append(c)
     else:
         root.text = None if cval is None else str(cval)
@@ -39,6 +36,7 @@ class Marshall(object):
     xml_childs
     xml_attributes
     xml_updatable
+    xml_value
     """
     @staticmethod
     def dump(obj):
