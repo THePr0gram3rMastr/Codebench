@@ -67,12 +67,7 @@ class Marshall(object):
     def update(obj, xmlobj):
         for xo in xmlobj.getchildren():
             if xo.tag in obj.xml_updatable:
-                val = xo.text
-                if val is None:
-                    if (len(xo.getchildren()) != 0):
-                        val = dictify(xo)
-                    else:
-                        val = ''
+                val = '' if xo.text is None else xo.text
                 setattr(obj, xo.tag, val)
             else:
                 if logger.isEnabledFor(logging.WARNING): 
