@@ -3,7 +3,6 @@
 # vim: ts=4 sw=4 sts=0 expandtab:
 import os
 import copy
-import traceback
 import logging
 
 import generator
@@ -49,11 +48,11 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        for callback, cargs in self.observers.itervalues():
+        for id, (callback, cargs) in self.observers.iteritems():
             try:
                 callback(*(args + cargs))
             except Exception, e:
-                traceback.print_exc()
+                logger.exception(str(e))
 
     def __call__(self, *args):
         self.dispatch(*args)
@@ -67,14 +66,15 @@ class Event(object):
     def __len__(self):
         return len(self.observers)
 
-class ThreadedEvent(Event):
+class ThreadsafeEvent(Event):
     def dispatch(self, *args):
         o2 = copy.copy(self.observers)
         for callback, cargs in o2.itervalues():
             try:
                 callback(*(args + cargs))
             except Exception, e:
-                traceback.print_exc()
+                logger.exception(str(e))
+
 
 class EventDispatcherBase(object):
     """
@@ -128,6 +128,6 @@ class EventDispatcherBase(object):
             getattr(self, evt + "Event").clear()
 
 
-class ThreadedEventDispatcher(EventDispatcherBase):
-    event_type = ThreadedEvent
+class ThreadsafeEventDispatcher(EventDispatcherBase):
+    event_type = ThreadsafeEvent
 
