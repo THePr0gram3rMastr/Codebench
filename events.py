@@ -127,6 +127,10 @@ class EventDispatcherBase(object):
         for evt in self.events:
             getattr(self, evt + "Event").clear()
 
+    def dispatch(self, evtname, *args):
+        if evtname in self.events:
+            getattr(self, evtname + "Event")(*args)
+
 
 class ThreadsafeEventDispatcher(EventDispatcherBase):
     event_type = ThreadsafeEvent
