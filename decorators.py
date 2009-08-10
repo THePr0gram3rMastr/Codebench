@@ -5,7 +5,6 @@
 import logging
 import traceback
 import new
-import sys
 import os
 import time
 
@@ -112,7 +111,7 @@ class memoizehd(object):
     function and the parameters and store the result in a designed
     file. ONLY WORK WITH SCIPY/NUMPY ARRAY AND WITH HASHABLE PARAMETERS
     """
-    def __init__(self, basepath =  sys.argv[0]):
+    def __init__(self):
         basepath = basepath[1:] if basepath.startswith('/') else basepath
         basepath = os.path.join("/tmp", basepath)
         try:
