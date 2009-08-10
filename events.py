@@ -4,6 +4,7 @@
 import os
 import copy
 import logging
+import weakref
 
 import generator
 
@@ -34,7 +35,7 @@ class Event(object):
             raise RuntimeError("Callback must be callable")
 
         oid = self.uid_gen.next() if 'id' not in kwarg else kwarg.pop('id')
-        self.observers[oid] = (obj, args)
+        self.observers[oid] = (weakref.ref(obj), args)
         return oid
 
     def removeObserver(self, obj):
@@ -48,9 +49,17 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        for id, (callback, cargs) in self.observers.iteritems():
+        o2 = copy.copy(self.observers)
+        for id, (wcallback, cargs) in o2.iteritems():
             try:
-                callback(*(args + cargs))
+                callback = wcallback()
+                if callback is not None:
+                    callback(*(args + cargs))
+                else:
+                    if logger.isEnabledFor(logging.WARNING):
+                        logger.warning("Observer event deleted id [%d]" % id)
+                        print args
+                    del self.observers[id]
             except Exception, e:
                 logger.exception(str(e))
 
@@ -66,15 +75,7 @@ class Event(object):
     def __len__(self):
         return len(self.observers)
 
-class ThreadsafeEvent(Event):
-    def dispatch(self, *args):
-        o2 = copy.copy(self.observers)
-        for callback, cargs in o2.itervalues():
-            try:
-                callback(*(args + cargs))
-            except Exception, e:
-                logger.exception(str(e))
-
+ThreadsafeEvent = Event
 
 class EventDispatcherBase(object):
     """
