@@ -24,7 +24,6 @@ class Event(object):
         Init procedure
         """
         self.observers = {}
-        #self.uid_gen = generator.uid_generator()
         if len(args) != 0:
             self.types = args
 
@@ -36,7 +35,12 @@ class Event(object):
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
-        oid = id(obj)
+        oid = hash(obj) if isinstance(obj,new.instancemethod) else id(obj)
+        oid = kwarg.pop("oid", oid)
+        if oid in self.observers:
+            if logger.isEnabledFor(logger.WARNING):
+                logger.warning("Observer ID collision detected [%s]" % str(oid))
+
         wobj = wref.WeakBoundMethod(obj) if isinstance(obj,new.instancemethod) else weakref.ref(obj)
         self.observers[oid] = (wobj, args)
         return oid
@@ -45,7 +49,8 @@ class Event(object):
         """
         This method remove an observer for the event.
         """
-        oid = obj if obj in self.observers else id(obj)
+        oid = hash(obj) if isinstance(obj,new.instancemethod) else id(obj)
+        oid = obj if obj in self.observers else oid
         del self.observers[oid]
 
     def dispatch(self, *args):
@@ -93,7 +98,6 @@ class EventDispatcherBase(object):
         Simple Init method which creates the events
         """
         #self.uid_gen = generator.uid_generator()
-        self.observers = {}
         for evt_name in self.events:
             if hasattr(self, evt_name + "Event"):
                     logger.warning("Event Function Override -- %s --" % evt_name)
@@ -106,7 +110,6 @@ class EventDispatcherBase(object):
         """
         Add the right method observer to the contained event
         """
-        oid = id(obj)
         for evt in self.events:
             try:
                 getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kwarg)
@@ -114,14 +117,11 @@ class EventDispatcherBase(object):
                 if logger.isEnabledFor(logging.WARNING):
                     logger.warning("Object : %s do not have attribute -- %s --" % \
                                (repr(obj), evt))
-        self.observers[oid] = obj
-        return oid
 
     def removeObserver(self, obj):
         """
         Remove the right method observer to the contained event
         """
-        oid = obj if obj in self.observers else id(obj)
         for evt in self.events:
             try:
                 getattr(self, evt + "Event").removeObserver(getattr(obj, evt), *args, **kwarg)
@@ -134,8 +134,15 @@ class EventDispatcherBase(object):
         """
         #for evt in self.eents:
         #    getattr(self, evt + "Event").clear()
-        for iddict in self.observers.itervalues():
-                for evt, seoid in iddict:
+        for evt in self.events:
+            try:
+                getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kwarg)
+            except AttributeError, err:
+                if logger.isEnabledFor(logging.WARNING):
+                    logger.warning("Object : %s do not have attribute -- %s --" % \
+                               (repr(obj), evt))
+
+        for evt, seoid in iddict:
                     getattr(self, evt + "Event").removeObserver(seoid)
         self.observers = {}
 
