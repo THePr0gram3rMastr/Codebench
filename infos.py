@@ -51,6 +51,35 @@ class ProgressBar(object):
         self.value = min(value, sefl.max)
         self.draw()
 
+class Timer(object):
+        total = 0
+        t = None
+        n = 0
+        def __enter__(self):
+            self.start()
+
+        def __exit__(self, typ, value, traceback):
+            self.stop()
+
+        def start(self):
+            if self.t is None:
+                self.t = time.time()
+                self.n += 1
+            else:
+                raise RuntimeError("Timer already started")
+
+        def stop(self):
+            if self.t is not None:
+                self.total = time.time() - self.t
+                self.t = None
+            else:
+                raise RuntimeError("Timer not started")
+
+        def mean(self):
+            return self.total / self.n
+
+        def reset(self):
+            self.n = self.total = 0
 
 if __name__ == "__main__":
     a = ProgressBar()
