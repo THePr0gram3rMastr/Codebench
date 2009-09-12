@@ -1,6 +1,7 @@
 #
 #
 # vim: ts=4 sw=4 sts=0 expandtab:
+from __future__ import with_statement
 import os
 import new
 import copy
@@ -9,8 +10,24 @@ import weakref
 from codebench import wref
 
 import generator
+import time
 
 logger = logging.getLogger(__name__)
+
+
+class EventSupervisor(object):
+        processing = False
+        triggered = 0
+        def __init__(self):
+            self.creation_time = time.time()
+
+        def __enter__(self):
+            self.processing = True
+            self.triggered += 1
+
+        def __exit__(self, typ, value, traceback):
+            self.processing = False
+
 
 class Event(object):
     """
@@ -24,6 +41,7 @@ class Event(object):
         Init procedure
         """
         self.observers = {}
+        self.supervisor = EventSupervisor()
         if len(args) != 0:
             self.types = args
 
@@ -59,17 +77,18 @@ class Event(object):
         the listener functions.
         """
         o2 = copy.copy(self.observers)
-        for oid, (wcallback, cargs) in o2.iteritems():
-            try:
-                callback = wcallback()
-                if callback is not None:
-                    callback(*(args + cargs))
-                else:
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug("Observer event deleted id [%d]" % oid)
-                    del self.observers[oid]
-            except Exception, e:
-                logger.exception(str(e))
+        with self.supervisor:
+            for oid, (wcallback, cargs) in o2.iteritems():
+                try:
+                    callback = wcallback()
+                    if callback is not None:
+                        callback(*(args + cargs))
+                    else:
+                        if logger.isEnabledFor(logging.DEBUG):
+                            logger.debug("Observer event deleted id [%d]" % oid)
+                        del self.observers[oid]
+                except Exception, e:
+                    logger.exception(str(e))
 
     def __call__(self, *args):
         self.dispatch(*args)
