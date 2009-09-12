@@ -1,13 +1,30 @@
 #
 #
 # vim: ts=4 sw=4 sts=0 expandtab:
+from __future__ import with_statement
 import os
 import copy
 import logging
 
 import generator
+import time
 
 logger = logging.getLogger(__name__)
+
+
+class EventSupervisor(object):
+        processing = False
+        triggered = 0
+        def __init__(self):
+            self.creation_time = time.time()
+
+        def __enter__(self):
+            self.processing = True
+            self.triggered += 1
+
+        def __exit__(self, typ, value, traceback):
+            self.processing = False
+
 
 class Event(object):
     """
@@ -20,6 +37,7 @@ class Event(object):
         """
         Init procedure
         """
+        self.supervisor = EventSupervisor()
         self.clear()
         self.uid_gen = generator.uid_generator()
         if len(args) != 0:
@@ -48,11 +66,12 @@ class Event(object):
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
-        for id, (callback, cargs) in self.observers.iteritems():
-            try:
-                callback(*(args + cargs))
-            except Exception, e:
-                logger.exception(str(e))
+        with self.supervisor:
+            for id, (callback, cargs) in self.observers.iteritems():
+                try:
+                    callback(*(args + cargs))
+                except Exception, e:
+                    logger.exception(str(e))
 
     def __call__(self, *args):
         self.dispatch(*args)
@@ -68,12 +87,15 @@ class Event(object):
 
 class ThreadsafeEvent(Event):
     def dispatch(self, *args):
-        o2 = copy.copy(self.observers)
-        for callback, cargs in o2.itervalues():
-            try:
-                callback(*(args + cargs))
-            except Exception, e:
-                logger.exception(str(e))
+        with self.supervisor:
+            self.processing = True
+            o2 = copy.copy(self.observers)
+            for callback, cargs in o2.itervalues():
+                try:
+                    callback(*(args + cargs))
+                except Exception, e:
+                    logger.exception(str(e))
+            self.processing = False
 
 
 class EventDispatcherBase(object):
