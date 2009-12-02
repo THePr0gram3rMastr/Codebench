@@ -3,28 +3,26 @@
 # vim: ts=4 sw=4 sts=0 noexpandtab:
 import logging
 
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
-
-RESET_SEQ = "\033[0m"
-COLOR_SEQ = "\033[01;%dm"
-
-COLORS = {
-    'WARNING': YELLOW,
-    'INFO': GREEN,
-    'DEBUG': BLUE,
-    'CRITICAL': RED,
-    'ERROR': RED,
-    'EXCEPTION' : CYAN
-}
-
-
-
 class ColoredFormatter(logging.Formatter):
+
+    BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
+
+    RESET_SEQ = "\033[0m"
+    COLOR_SEQ = "\033[01;%dm"
+
+    COLORS = {
+        'WARNING': YELLOW,
+        'INFO': GREEN,
+        'DEBUG': BLUE,
+        'CRITICAL': RED,
+        'ERROR': RED,
+        'EXCEPTION' : CYAN }
+
     def format(self, record):
         levelname = record.levelname
-        if levelname in COLORS:
-            record.levelname = COLOR_SEQ % (30 + COLORS[levelname]) + levelname + RESET_SEQ
-            record.msg = COLOR_SEQ % (30 + COLORS[levelname]) + record.msg + RESET_SEQ
+        if levelname in self.COLORS:
+            record.levelname = self.COLOR_SEQ % (30 + self.COLORS[levelname]) + levelname + self.RESET_SEQ
+            record.msg = self.COLOR_SEQ % (30 + self.COLORS[levelname]) + record.msg + self.RESET_SEQ
         return logging.Formatter.format(self, record)
 
 

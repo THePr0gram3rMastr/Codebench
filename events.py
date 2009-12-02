@@ -3,8 +3,11 @@
 # vim: ts=4 sw=4 sts=0 expandtab:
 from __future__ import with_statement
 import os
+import new
 import copy
 import logging
+import weakref
+from codebench import wref
 
 import generator
 import time
@@ -37,9 +40,8 @@ class Event(object):
         """
         Init procedure
         """
+        self.observers = {}
         self.supervisor = EventSupervisor()
-        self.clear()
-        self.uid_gen = generator.uid_generator()
         if len(args) != 0:
             self.types = args
 
@@ -51,25 +53,40 @@ class Event(object):
         if not callable(obj):
             raise RuntimeError("Callback must be callable")
 
-        oid = self.uid_gen.next() if 'id' not in kwarg else kwarg.pop('id')
-        self.observers[oid] = (obj, args)
+        oid = hash(obj) if isinstance(obj,new.instancemethod) else id(obj)
+        oid = kwarg.pop("oid", oid)
+        if oid in self.observers:
+            if logger.isEnabledFor(logger.WARNING):
+                logger.warning("Observer ID collision detected [%s]" % str(oid))
+
+        wobj = wref.WeakBoundMethod(obj) if isinstance(obj,new.instancemethod) else weakref.ref(obj)
+        self.observers[oid] = (wobj, args)
         return oid
 
     def removeObserver(self, obj):
         """
         This method remove an observer for the event.
         """
-        del self.observers[obj]
+        oid = hash(obj) if isinstance(obj,new.instancemethod) else id(obj)
+        oid = obj if obj in self.observers else oid
+        del self.observers[oid]
 
     def dispatch(self, *args):
         """
         This method dispatch the events with arguments which are forwarded to
         the listener functions.
         """
+        o2 = copy.copy(self.observers)
         with self.supervisor:
-            for id, (callback, cargs) in self.observers.iteritems():
+            for oid, (wcallback, cargs) in o2.iteritems():
                 try:
-                    callback(*(args + cargs))
+                    callback = wcallback()
+                    if callback is not None:
+                        callback(*(args + cargs))
+                    else:
+                        if logger.isEnabledFor(logging.DEBUG):
+                            logger.debug("Observer event deleted id [%d]" % oid)
+                        del self.observers[oid]
                 except Exception, e:
                     logger.exception(str(e))
 
@@ -85,18 +102,7 @@ class Event(object):
     def __len__(self):
         return len(self.observers)
 
-class ThreadsafeEvent(Event):
-    def dispatch(self, *args):
-        with self.supervisor:
-            self.processing = True
-            o2 = copy.copy(self.observers)
-            for callback, cargs in o2.itervalues():
-                try:
-                    callback(*(args + cargs))
-                except Exception, e:
-                    logger.exception(str(e))
-            self.processing = False
-
+ThreadsafeEvent = Event
 
 class EventDispatcherBase(object):
     """
@@ -110,6 +116,7 @@ class EventDispatcherBase(object):
         """
         Simple Init method which creates the events
         """
+        #self.uid_gen = generator.uid_generator()
         for evt_name in self.events:
             if hasattr(self, evt_name + "Event"):
                     logger.warning("Event Function Override -- %s --" % evt_name)
@@ -118,13 +125,13 @@ class EventDispatcherBase(object):
                 setattr(self, evt_name + "Event", evt)
                 evt.name = evt_name
 
-    def addObserver(self, obj, *args, **kw):
+    def addObserver(self, obj, *args, **kwarg):
         """
         Add the right method observer to the contained event
         """
         for evt in self.events:
             try:
-                getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kw)
+                getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kwarg)
             except AttributeError, err:
                 if logger.isEnabledFor(logging.WARNING):
                     logger.warning("Object : %s do not have attribute -- %s --" % \
@@ -136,18 +143,31 @@ class EventDispatcherBase(object):
         """
         for evt in self.events:
             try:
-                getattr(self, evt).removeObserver(getattr(obj, evt), evt, *args, **kw)
+                getattr(self, evt + "Event").removeObserver(getattr(obj, evt), *args, **kwarg)
             except AttributeError, err:
-                if logger.isEnabledFor(logging.WARNING):
-                    logger.warning("Object : %s do not have attribute -- %s --" % \
-                               (repr(obj), evt))
+                pass
 
     def clear(self):
         """
         Clear all events of this object
         """
+        #for evt in self.eents:
+        #    getattr(self, evt + "Event").clear()
         for evt in self.events:
-            getattr(self, evt + "Event").clear()
+            try:
+                getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, **kwarg)
+            except AttributeError, err:
+                if logger.isEnabledFor(logging.WARNING):
+                    logger.warning("Object : %s do not have attribute -- %s --" % \
+                               (repr(obj), evt))
+
+        for evt, seoid in iddict:
+                    getattr(self, evt + "Event").removeObserver(seoid)
+        self.observers = {}
+
+    def dispatch(self, evtname, *args):
+        if evtname in self.events:
+            getattr(self, evtname + "Event")(*args)
 
 
 class ThreadsafeEventDispatcher(EventDispatcherBase):

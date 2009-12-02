@@ -64,13 +64,13 @@ class Timer(object):
         def start(self):
             if self.t is None:
                 self.t = time.time()
-                self.n += 1
             else:
                 raise RuntimeError("Timer already started")
 
         def stop(self):
             if self.t is not None:
-                self.total = time.time() - self.t
+                self.total += time.time() - self.t
+                self.n += 1
                 self.t = None
             else:
                 raise RuntimeError("Timer not started")

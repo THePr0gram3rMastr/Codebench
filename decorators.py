@@ -111,7 +111,7 @@ class memoizehd(object):
     function and the parameters and store the result in a designed
     file. ONLY WORK WITH SCIPY/NUMPY ARRAY AND WITH HASHABLE PARAMETERS
     """
-    def __init__(self):
+    def __init__(self, basepath = '/tmp'):
         basepath = basepath[1:] if basepath.startswith('/') else basepath
         basepath = os.path.join("/tmp", basepath)
         try:
@@ -150,12 +150,9 @@ class memoize(object):
     def __call__(self, fct):
         @wraps(fct)
         def wrapper(*args, **kwargs):
-            if args.__repr__() in self.return_dict:
-                return_value = self.return_dict[args.__repr__()]
-            else:
-                return_value = fct(*args, **kwargs)
-                self.return_dict[args.__repr__()] = return_value
-            return return_value
+            if args not in self.return_dict:
+                    self.return_dict[args] = fct(*args, **kwargs)
+            return self.return_dict[args]
         return wrapper
 
 
