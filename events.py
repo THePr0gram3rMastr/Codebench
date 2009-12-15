@@ -2,15 +2,11 @@
 #
 # vim: ts=4 sw=4 sts=0 expandtab:
 from __future__ import with_statement
-import os
-import new
-import copy
+import os, new, copy, weakref, threading, time
 import logging
-import weakref
 from codebench import wref
 
 import generator
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +98,15 @@ class Event(object):
     def __len__(self):
         return len(self.observers)
 
-ThreadsafeEvent = Event
+class ThreadsafeEvent(Event):
+        def __init__(self, mutex = None):
+                Event.__init__(self)
+                self.mutex = threading.Lock()
+
+        def dispatch(self, *args):
+                with self.mutex:
+                        Event.dispatch(self, *args)
+
 
 class EventDispatcherBase(object):
     """
@@ -171,5 +175,23 @@ class EventDispatcherBase(object):
 
 
 class ThreadsafeEventDispatcher(EventDispatcherBase):
-    event_type = ThreadsafeEvent
+        event_type = ThreadsafeEvent
+        def __init__(self):
+            """
+            Simple Init method which creates the events
+            """
+            #self.uid_gen = generator.uid_generator()
+            self.mutex = threading.Lock()
+            for evt_name in self.events:
+                if hasattr(self, evt_name + "Event"):
+                        logger.warning("Event Function Override -- %s --" % evt_name)
+                else:
+                    evt = self.event_type(mutex = self.mutex)
+                    setattr(self, evt_name + "Event", evt)
+                    evt.name = evt_name
+
+
+                
+
+        
 
