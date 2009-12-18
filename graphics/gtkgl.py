@@ -212,6 +212,8 @@ class GLRenderer(object):
         glLoadIdentity()
         gluPerspective(45, evt.width/float(evt.height), 0.1, 10000)
         glMatrixMode(GL_MODELVIEW)
+        glEnable (GL_BLEND);
+        glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         gldrawable.gl_end()
 
