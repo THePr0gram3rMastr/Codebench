@@ -138,22 +138,19 @@ class memoizehd(object):
             return return_value
         return wrapper
 
+def memoize(fct):
+	"""
+	This is a decorator which cache the result of a function based on the 
+	given parameter.
+	"""
+	return_dict = {}
 
-class memoize(object):
-    """
-    This is a decorator which cache the result of a function based on the 
-    given parameter.
-    """
-    def __init__(self):
-        self.return_dict = {}
-
-    def __call__(self, fct):
-        @wraps(fct)
-        def wrapper(*args, **kwargs):
-            if args not in self.return_dict:
-                    self.return_dict[args] = fct(*args, **kwargs)
-            return self.return_dict[args]
-        return wrapper
+	@wraps(fct)
+	def wrapper(*args, **kwargs):
+		if args not in return_dict:
+			return_dict[args] = fct(*args, **kwargs)
+		return return_dict[args]
+	return wrapper
 
 
 def timedcall(fct):

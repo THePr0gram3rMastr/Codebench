@@ -3,25 +3,22 @@
 # vim: ts=4 sw=4 sts=0 expandtab:
 
 import logging
-import gtk
-import gtk.gtkgl
-from logging import *
+import gtk, gtk.gtkgl
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-import gobject
+import gobject, weakref
 
-import scipy
-import weakref
+import scipy as sc
 
 logger = logging.getLogger(__name__)
 
 
 class Actor(object):
     visible = True
-    p = scipy.eye(4)
+    p = sc.eye(4)
     def display(self):
         if self.visible:
             glPushMatrix()
@@ -41,8 +38,8 @@ class GridActor(Actor):
     color = (1.0, 1.0, 1.0)
     def __init__(self, scalex = 1, scaley = 1, n = 10):
         Actor.__init__(self)
-        self.p = scipy.diag([scalex, scaley, 1, 1])
-        self.ran = scipy.arange(0, 1.0 + 1.0 / n, 1.0 / n)
+        self.p = sc.diag([scalex, scaley, 1, 1])
+        self.ran = sc.arange(0, 1.0 + 1.0 / n, 1.0 / n)
 
     def draw(self):
         glColor3fv(self.color)
@@ -99,7 +96,7 @@ class GLRenderer(object):
     FRUSTDIM = 500
 
     ROTATION_SPEED = 0.5
-    TRANSLATION_SPEED = 0.5
+    TRANSLATION_SPEED = 2.0
     ZOOM_SPEED = 5
 
     FPS = 15
