@@ -2,7 +2,8 @@
 #
 # vim: ts=4 sw=4 sts=0 noexpandtab:
 
-import itertools
+import itertools, os
+
 
 def reclist(fct, first_arg, n):
     """
@@ -13,6 +14,13 @@ def reclist(fct, first_arg, n):
     for i in range(1,n):
         return_value[i] = fct(return_value[i - 1])
     return return_value
+
+
+def file_series(path, first = 0, last = -1):
+		files = os.listdir(path)
+		files.sort()
+		for fname in files:
+				yield os.path.join(path, fname)
 
 __colors__ = [(0,0,1), (0, 1, 0), (1, 0, 0), (1, 1, 0), (0, 1, 1), (1, 0, 1)]
 
