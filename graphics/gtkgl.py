@@ -93,12 +93,6 @@ class GLRenderer(object):
     TRANSLATION_SPEED = 0.5
     ZOOM_SPEED = 0.5
 
-    FRUSTDIM = 500
-
-    ROTATION_SPEED = 0.5
-    TRANSLATION_SPEED = 2.0
-    ZOOM_SPEED = 5
-
     FPS = 15
 
     def __init__(self, stop = True):
