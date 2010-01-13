@@ -22,6 +22,8 @@ def saveSplines(directory, splines):
 	ierlst = []
 	msglst = []
 	for ((t, c, k), u), fp, ier, msg  in splines:
+		if ier < 0:
+			continue
 		tlst.append(t)
 		clst.append(c)
 		klst.append(k)
@@ -32,14 +34,14 @@ def saveSplines(directory, splines):
 	tarr = np.array(tlst)
 	carr = np.array(clst)
 	karr = np.array(klst)
-	uarr = np.array(ulst)
+	#uarr = np.array(ulst)
 	fparr = np.array(fplst)
 	ierarr = np.array(ierlst)
 	
 	np.save(os.path.join(directory, T_FILE), tarr)
 	np.save(os.path.join(directory, C_FILE), carr)
 	np.save(os.path.join(directory, K_FILE), karr)
-	np.save(os.path.join(directory, U_FILE), uarr)
+	#np.save(os.path.join(directory, U_FILE), uarr)
 	np.save(os.path.join(directory, FP_FILE), fparr)
 	np.save(os.path.join(directory, IER_FILE), ierarr)
 	
@@ -51,13 +53,13 @@ def loadSplines(directory):
 	tarr = np.load(os.path.join(directory, T_FILE))
 	carr = np.load(os.path.join(directory, C_FILE))
 	karr = np.load(os.path.join(directory, K_FILE))
-	uarr = np.load(os.path.join(directory, U_FILE))
+	#uarr = np.load(os.path.join(directory, U_FILE))
 	fparr = np.load(os.path.join(directory, FP_FILE))
 	ierarr = np.load(os.path.join(directory, IER_FILE))
 	with open(os.path.join(directory, MSG_FILE)) as f:
 		msglst = f.readlines()
 
-	return [(([t, c, k], u), fp, ier, msg) for t, c, k, u, fp, ier, msg in  izip(tarr, carr, karr, uarr, fparr, ierarr, msglst)]
+	return [(([t, c, k], None), fp, ier, msg) for t, c, k,  fp, ier, msg in  izip(tarr, carr, karr, fparr, ierarr, msglst)]
 
 
 

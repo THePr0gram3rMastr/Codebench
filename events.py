@@ -191,7 +191,3 @@ class ThreadsafeEventDispatcher(EventDispatcherBase):
                     evt.name = evt_name
 
 
-                
-
-        
-
