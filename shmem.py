@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import codebench.aleatory
 import mmap
 import os
