@@ -2,5 +2,5 @@
 #
 #
 
-__all__ = ['log', 'decorators',  'arguments', 'infos', 'iter', 'graphics']
+__all__ = ['log', 'decorators',  'arguments', 'infos', 'iter', 'graphics', 'pool', 'opencv', 'graphics', 'generator', 'capture', 'aleatory', 'ipc', 'persistance', 'shmem', 'stats', 'threads', 'wref', 'xml']
 
