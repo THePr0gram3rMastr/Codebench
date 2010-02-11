@@ -1,5 +1,6 @@
 from __future__ import with_statement
 import numpy as np
+import scipy as sc
 import os
 
 from itertools import izip
@@ -79,6 +80,15 @@ def loadSplines(directory):
 
 	#return [(([t, c, k], None), fp, ier, msg) for t, c, k,  fp, ier, msg in  izip(tarr, carr, karr, fparr, ierarr, msglst)]
 
-
+def imread_path(path, first = 0, last = -1):
+    """
+      This method read a complete list of image(video) contained inside a directory. It sort the image and then read sequentially all the images in the directory. This script assume all images are the same size.
+      Inputs:
+        path - Path to the image directory
+    """
+    img_files = os.listdir(path)
+    img_files.sort()
+    img_list = [sc.misc.imread(os.path.join(path, imfile)) for imfile in img_files]
+    return sc.array(img_list)
 
 
