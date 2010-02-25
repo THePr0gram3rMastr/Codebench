@@ -17,6 +17,9 @@ class DirectoryDB(object):
                 self.protocol = protocol
                 self.cache = {}
 
+        def __len__(self):
+                return len(self.keys())
+
         def __iter__(self):
                 return self.keys().__iter__()
 
