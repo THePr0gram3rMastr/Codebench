@@ -51,17 +51,24 @@ class DirectoryDB(object):
 
 
         def __setitem__(self, key, value):
+                self.set(key, value)
+
+        def set(self, key, value, protocol = None):
+                if protocol is None:
+                        protocol = self.protocol
                 splitPath = os.path.split(key)
                 dirpath = os.path.join(self.root, *splitPath[:-1])
                 keypath = os.path.join(self.root, *splitPath)
                 if not os.path.exists(dirpath):
                         os.makedirs(dirpath)
                 with open(keypath, 'w') as f:
-                        pickle.dump(value, f, protocol = self.protocol)
+                        pickle.dump(value, f, protocol = protocol)
                 try:
                         self.cache[key] = weakref.ref(value)
                 except TypeError, e:
                     pass
+
+
 
 
         def __delitem__(self, key):
