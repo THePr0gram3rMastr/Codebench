@@ -28,7 +28,8 @@ class EventSupervisor(object):
 class Event(object):
     """
     This is a simple object which represent an event it can be dispatched which
-    notifies every observer of this event
+    notifies every observer of this event. WARNING : This object only keep weakref
+    for the observer
     """
     name = ""
     types = None

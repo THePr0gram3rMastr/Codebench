@@ -23,7 +23,15 @@ class DirectoryDB(object):
         def __iter__(self):
                 return self.keys().__iter__()
 
-        def __getitem__(self, key):
+        def __getitem__(self, keys):
+                if hasattr(keys, "__iter__"):
+                        key = ""
+                        for k in keys:
+                                key = "%s/%s" % (key, k)
+                        key = key[1:]
+                else:
+                        key = keys
+
                 if (key in self.cache):
                         item = self.cache[key]()
                         if item is not None:
