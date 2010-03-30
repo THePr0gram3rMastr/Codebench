@@ -10,6 +10,18 @@ import weakref
 
 
 class DirectoryDB(object):
+        @staticmethod
+        def join_keys(args):
+                if hasattr(args, "__iter__"):
+                        key = ""
+                        for k in args:
+                                key = "%s/%s" % (key, k)
+                        key = key[1:]
+                else:
+                        key = args
+                return key
+
+        
         def __init__(self, root, protocol = pickle.HIGHEST_PROTOCOL):
                 self.root = os.path.expanduser(root)
                 if not os.path.exists(self.root):
@@ -24,14 +36,7 @@ class DirectoryDB(object):
                 return self.keys().__iter__()
 
         def __getitem__(self, keys):
-                if hasattr(keys, "__iter__"):
-                        key = ""
-                        for k in keys:
-                                key = "%s/%s" % (key, k)
-                        key = key[1:]
-                else:
-                        key = keys
-
+                key = self.join_keys(keys)
                 if (key in self.cache):
                         item = self.cache[key]()
                         if item is not None:
@@ -58,10 +63,11 @@ class DirectoryDB(object):
                 return os.listdir(self.root)
 
 
-        def __setitem__(self, key, value):
-                self.set(key, value)
+        def __setitem__(self, keys, value):
+                self.set(keys, value)
 
-        def set(self, key, value, protocol = None):
+        def set(self, keys, value, protocol = None):
+                key = self.join_keys(keys)
                 if protocol is None:
                         protocol = self.protocol
                 splitPath = os.path.split(key)
