@@ -86,8 +86,13 @@ try:
 	import pycuda.tools
 	drv.init()
 	class CudaWorker(Worker):
+                def __init__(self, deviceId = None):
+                        self.deviceId = deviceId
 		def run(self):
-			dev = pycuda.tools.get_default_device()
+                        if deviceId is None:
+			        dev = pycuda.tools.get_default_device()
+                        else:
+                                pass
 			ctx = dev.make_context()
 			Worker.run(self)
 			ctx.pop()

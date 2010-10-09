@@ -4,7 +4,7 @@
 from __future__ import with_statement
 import os, new, copy, weakref, threading, time
 import logging
-from codebench import wref
+import wref
 
 import generator
 
@@ -145,7 +145,7 @@ class EventDispatcherBase(object):
         """
         for evt in self.events:
             try:
-                getattr(self, evt + "Event").removeObserver(oid, *args, **kwarg)
+                getattr(self, evt + "Event").removeObserver(oid)
             except AttributeError, err:
                 pass
 
@@ -177,14 +177,9 @@ class MutexedEventDispatcher(EventDispatcherBase):
             """
             Simple Init method which creates the events
             """
-            EventDispatcherBase.__init__(self, *args, **kw)
             self.mutex = threading.Lock()
-            for evt_name in self.events:
-                if hasattr(self, evt_name + "Event"):
-                        logger.warning("Event Function Override -- %s --" % evt_name)
-                else:
-                    evt = self.event_type(mutex = self.mutex)
-                    setattr(self, evt_name + "Event", evt)
-                    evt.name = evt_name
+            if "mutex" not in kw:
+                kw["mutex"] = self.mutex
+            EventDispatcherBase.__init__(self, *args, **kw)
 
 
