@@ -1,23 +1,29 @@
 from __future__ import with_statement
-import codebench.aleatory
-import mmap
-import os
+
+import os, \
+       mmap
+
+import aleatory
 import ctypes
 
-from lxml import etree
 
+np = None
 try:
-    import scipy
-except ImportError, err:
-    scipy = None
+    import numpy as np
+except ImportError, err: pass
 
+json = None
 try:
     import json
 except:
     try:
         import simplejson as json
-    except:
-        json = None
+    except ImportError, err: pass
+
+etree = None
+try:
+    import lxml.etree as etree
+except ImportError, err: pass
 
 
 class SharedMemory(object):
@@ -37,12 +43,13 @@ class SharedMemory(object):
                 file.flush()
             self.buffer = mmap.mmap(file.fileno(), size)
 
-    @classmethod
-    def fromxml(cls, xmlstring):
-        el = etree.fromstring(xmlstring)
-        size = int(el.attrib.pop('size'))
-        filename = el.attrib.pop('filename')
-        return cls(size, filename = filename)
+    if etree is not None:
+        @classmethod
+        def fromxml(cls, xmlstring):
+            el = etree.fromstring(xmlstring)
+            size = int(el.attrib.pop('size'))
+            filename = el.attrib.pop('filename')
+            return cls(size, filename = filename)
 
     if json is not None:
         @classmethod
@@ -57,13 +64,16 @@ class SharedMemory(object):
         if self.owner:
             os.remove(self.filename)
 
-    def as_carray(self, ctype = ctypes.c_uint8):
+    def ascarray(self, ctype = ctypes.c_uint8):
         arr_type = ctype * len(self.buffer)
         return arr_type.from_buffer(self.buffer)
 
-    if scipy is not None:
-        def as_array(self, dtype = scipy.uint8):
-            return scipy.frombuffer(self.buffer, dtype = dtype)
+    if np is not None:
+        def asarray(self, dtype = scipy.uint8, shape = None):
+            ary = scipy.frombuffer(self.buffer, dtype = dtype)
+            if shape != None:
+                ary.shape = shape
+            return ary
 
 
 
