@@ -2,7 +2,7 @@
 #
 # vim: ts=4 sw=4 sts=0 expandtab:
 from __future__ import with_statement
-import os, new, copy, weakref, threading, time
+import os, types, copy, weakref, threading, time
 import logging
 import wref
 
@@ -32,14 +32,14 @@ class Event(object):
     keeps weakref so KEEP REFERENCE.
     """
     name = ""
-    def __init__(self, **kw):
+    def __init__(self, supervisor = None, weakref = False):
         """
         Init procedure
         """
         self.observers = {}
-        self.supervisor = EventSupervisor()
+        self.supervisor = EventSupervisor() if supervisor is None else supervisor
         self.uid_gen = generator.uid_generator()
-        self.wref = kw.pop("weakref", True)
+        self.wref = weakref
 
     def addObserver(self, observer, *args, **kwarg):
         """
@@ -56,7 +56,7 @@ class Event(object):
 
         obj = observer
         if self.wref:
-            obj = wref.WeakBoundMethod(obj) if isinstance(obj,new.instancemethod) else weakref.ref(obj)
+            obj = wref.WeakBoundMethod(obj) if isinstance(obj, types.InstanceType) else weakref.ref(obj)
 
         self.observers[oid] = (obj, args)
         return oid
@@ -87,7 +87,7 @@ class Event(object):
                             del self.observers[oid]
                     else:
                         callback(*(args + cargs))
-                except Exception, e:
+                except Exception(e):
                     logger.exception(str(e))
 
     __call__ = dispatch
@@ -133,7 +133,7 @@ class EventDispatcherBase(object):
         for evt in self.events:
             try:
                 getattr(self, evt + "Event").addObserver(getattr(obj, evt), *args, oid = oid)
-            except AttributeError, err:
+            except AttributeError(err):
                 if logger.isEnabledFor(logging.WARNING):
                     logger.warning("Object : %s do not have attribute -- %s --" % \
                                (repr(obj), evt))
@@ -146,7 +146,7 @@ class EventDispatcherBase(object):
         for evt in self.events:
             try:
                 getattr(self, evt + "Event").removeObserver(oid)
-            except AttributeError, err:
+            except AttributeError(err):
                 pass
 
     def clear(self):
@@ -182,4 +182,94 @@ class MutexedEventDispatcher(EventDispatcherBase):
                 kw["mutex"] = self.mutex
             EventDispatcherBase.__init__(self, *args, **kw)
 
+
+class Conduit(object):
+    """
+    This class is very similar to the Event Class. It provides callback
+    registery for asynchronous event processing. It also add the backward
+    linkage to the coresponding event when the object is defining the
+    __input_event_id__ attribute. This object is interesting to use if you
+    have to introspect the incomming event and get some information with it.
+    """
+    __input_event_id__ = "__input_events__"
+
+    def __init__(self, supervisor = None):
+        """
+        """
+        self.__observers__ = ()
+        self.__uid_gen__ = generator.uid_generator()
+        self.supervisor = EventSupervisor() if supervisor is None else supervisor
+
+
+    def __add_backward_reference__(self, callback, obj):
+        """
+        """
+        if not hasattr(obj, self.__input_event_id__):
+            return
+        cid = hash(callback)
+        if cid not in obj.__input_pipes__:
+            obj.__input_pipes__[cid] = []
+
+        obj.__input_pipes__[cid].append(self)
+
+    def __del_backward_reference__(self, callback, obj):
+        """
+        """
+        if not hasattr(obj, self.__input_event_id__):
+            return
+        cid = hash(callback)
+        obj.__input_pipes__[cid].remove(self)
+
+
+    def addObserver(self, callback, *args, **kwarg):
+        """
+        """
+        if not callable(callback):
+            raise RuntimeError("Observer must be callable")
+
+        uid = next(self.__uid_gen__)
+        if uid in self.__observers__:
+            raise RuntimeError("Observer ID collision detected[%s]" & str(uid))
+
+        self.__observers__ = self.__observers__ + ((uid, callback, args), )
+        if isinstance(callback, types.MethodType):
+            obj = callback.__self__
+            self.__add_backward_reference__(callback, obj)
+
+        return uid
+
+    def dispatch(self, *args, **kw):
+        """
+        """
+        with self.supervisor:
+            for oid, callback, inargs in self.__observers__:
+                try:
+                    callback(*(inargs + args), **kw)
+                except Exception(e):
+                    pass
+
+
+    def removeObserver(self, roid):
+        """
+        """
+        for i in range(len(self.__observers__)):
+            oid, callback, args = self.__observers__[i]
+            if roid == oid:
+                if isinstance(callback, types.MethodType):
+                    obj = callback.__self__
+                    self.__del_backward_reference__(callback, obj)
+                self.__observers__ = self.__observers__[:i] + self.__observers__[i + 1:]
+                return
+
+        raise RuntimeError("Observer does not exists ...")
+
+    def clear(self):
+        """
+        """
+        while len(self.__observers__) is not 0:
+            oid, callback, args = self.__observers__[0]
+            self.removeObserver(oid)
+
+    def __call__(self, *args, **kw):
+        self.dispatch(*args, **kw)
 
