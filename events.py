@@ -5,6 +5,7 @@ from __future__ import with_statement
 import os, types, copy, weakref, threading, time
 import logging
 import wref
+import traceback
 
 import generator
 
@@ -245,8 +246,8 @@ class Conduit(object):
             for oid, callback, inargs in self.__observers__:
                 try:
                     callback(*(inargs + args), **kw)
-                except Exception(e):
-                    pass
+                except Exception, e:
+                    traceback.print_exc()
 
 
     def removeObserver(self, roid):
